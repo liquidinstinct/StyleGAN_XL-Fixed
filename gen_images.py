@@ -114,7 +114,7 @@ def generate_images(
     class_idx: Optional[int]
 ):
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cuda')
+    device = torch.device('cpu')
     G = load_g_ema(network_pkl)
     G = G.eval().requires_grad_(False).to(device)
 

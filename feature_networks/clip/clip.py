@@ -72,7 +72,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=True):
+def load(name: str, device: Union[str, torch.device] = "cpu" if torch.cpu.is_available() else "cpu", jit=True):
     """Load a CLIP model
 
     Parameters

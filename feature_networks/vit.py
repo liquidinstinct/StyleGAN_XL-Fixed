@@ -55,7 +55,7 @@ class Transpose(nn.Module):
 
 def forward_vit(pretrained, x):
     b, c, h, w = x.shape
-    
+
     from timm.models.vision_transformer import VisionTransformer
     VisionTransformer.forward_flex = types.MethodType(forward_flex, VisionTransformer)
     VisionTransformer._resize_pos_embed = types.MethodType(_resize_pos_embed, VisionTransformer)
