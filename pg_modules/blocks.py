@@ -221,7 +221,7 @@ class FeatureFusionBlock(nn.Module):
 
         self.expand = expand
         out_features = features
-        if self.expand==True:
+        if self.expand:
             out_features = features//2
 
         self.out_conv = nn.Conv2d(features, out_features, kernel_size=1, stride=1, padding=0, bias=True, groups=1)
@@ -256,7 +256,7 @@ class NoiseInjection(nn.Module):
         return feat + self.weight * noise
 
 class CCBN(nn.Module):
-    ''' conditional batchnorm '''
+    """ conditional batchnorm """
     def __init__(self, output_size, input_size, which_linear, eps=1e-5, momentum=0.1):
         super().__init__()
         self.output_size, self.input_size = output_size, input_size
@@ -282,7 +282,7 @@ class CCBN(nn.Module):
         return out * gain + bias
 
 class CCBN1D(nn.Module):
-    ''' conditional batchnorm '''
+    """ conditional batchnorm """
     def __init__(self, output_size, input_size, which_linear, eps=1e-5, momentum=0.1):
         super().__init__()
         self.output_size, self.input_size = output_size, input_size

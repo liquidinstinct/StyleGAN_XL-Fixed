@@ -24,10 +24,10 @@ from torch_utils import gen_utils
 #----------------------------------------------------------------------------
 
 def parse_range(s: Union[str, List]) -> List[int]:
-    '''Parse a comma separated list of numbers or ranges and return a list of ints.
+    """Parse a comma separated list of numbers or ranges and return a list of ints.
 
     Example: '1,2,5-10' returns [1, 2, 5, 6, 7]
-    '''
+    """
     if isinstance(s, list): return s
     ranges = []
     range_re = re.compile(r'^(\d+)-(\d+)$')
@@ -42,15 +42,15 @@ def parse_range(s: Union[str, List]) -> List[int]:
 #----------------------------------------------------------------------------
 
 def parse_vec2(s: Union[str, Tuple[float, float]]) -> Tuple[float, float]:
-    '''Parse a floating point 2-vector of syntax 'a,b'.
+    """Parse a floating point 2-vector of syntax 'a,b'.
 
     Example:
         '0,1' returns (0,1)
-    '''
+    """
     if isinstance(s, tuple): return s
     parts = s.split(',')
     if len(parts) == 2:
-        return (float(parts[0]), float(parts[1]))
+        return float(parts[0]), float(parts[1])
     raise ValueError(f'cannot parse 2-vector {s}')
 
 #----------------------------------------------------------------------------

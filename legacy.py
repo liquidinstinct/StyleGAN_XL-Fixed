@@ -8,20 +8,28 @@
 
 """Converting legacy network pickle into the new format."""
 
+import copy
 import io
-import click
 import pickle
 import re
-import copy
+
+import click
 import numpy as np
 import torch
+
 import dnnlib
+from feature_networks.vit import forward_flex, _resize_pos_embed
 from torch_utils import misc
-import io
+import types
+
 
 #----------------------------------------------------------------------------
 
 def load_network_pkl(f, force_fp16=False):
+    from timm.models.vision_transformer import VisionTransformer
+    VisionTransformer.forward_flex = types.MethodType(forward_flex, VisionTransformer)
+    VisionTransformer._resize_pos_embed = types.MethodType(_resize_pos_embed, VisionTransformer)
+
     data = _LegacyUnpickler(f).load()
 
     # Legacy TensorFlow pickle => convert.

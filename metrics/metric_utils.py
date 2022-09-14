@@ -185,7 +185,7 @@ class ProgressMonitor:
         cur_time = time.time()
         total_time = cur_time - self.start_time
         time_per_item = (cur_time - self.batch_time) / max(cur_items - self.batch_items, 1)
-        if (self.verbose) and (self.tag is not None):
+        if self.verbose and (self.tag is not None):
             print(f'{self.tag:<19s} items {cur_items:<7d} time {dnnlib.util.format_time(total_time):<12s} ms/item {time_per_item*1e3:.2f}')
         self.batch_time = cur_time
         self.batch_items = cur_items

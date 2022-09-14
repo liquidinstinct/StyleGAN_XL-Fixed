@@ -1,15 +1,13 @@
 import numpy as np
+import timm
 import torch
 import torch.nn as nn
 import torchvision.models as zoomodels
-from torch.autograd import Function
-
-import timm
 
 from feature_networks import clip
-from feature_networks.vit import _make_vit_b16_backbone, forward_vit
 from feature_networks.constants import ALL_MODELS, VITS, EFFNETS, REGNETS
-from pg_modules.blocks import Interpolate
+from feature_networks.vit import _make_vit_b16_backbone, forward_vit
+
 
 def _feature_splitter(model, idcs):
     pretrained = nn.Module()
