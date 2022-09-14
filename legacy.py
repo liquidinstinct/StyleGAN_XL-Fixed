@@ -8,16 +8,18 @@
 
 """Converting legacy network pickle into the new format."""
 
+import copy
 import io
-import click
 import pickle
 import re
-import copy
+
+import click
 import numpy as np
 import torch
+
 import dnnlib
 from torch_utils import misc
-import io
+
 
 #----------------------------------------------------------------------------
 

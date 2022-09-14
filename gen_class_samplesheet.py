@@ -1,17 +1,18 @@
 import os
 from pathlib import Path
-import PIL.Image
 from typing import List
+
+import PIL.Image
 import click
 import numpy as np
 import torch
 from tqdm import tqdm
 
-import legacy
 import dnnlib
-from training.training_loop import save_image_grid
-from torch_utils import gen_utils
+import legacy
 from gen_images import parse_range
+from torch_utils import gen_utils
+
 
 @click.command()
 @click.option('--network', 'network_pkl', help='Network pickle filename', required=True)

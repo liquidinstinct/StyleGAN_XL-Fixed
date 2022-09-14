@@ -115,6 +115,10 @@ def _resize_pos_embed(self, posemb, gs_h, gs_w):
 
 
 def forward_flex(self, x):
+    from timm.models.vision_transformer import VisionTransformer
+    VisionTransformer.forward_flex = types.MethodType(forward_flex, VisionTransformer)
+    VisionTransformer._resize_pos_embed = types.MethodType(_resize_pos_embed, VisionTransformer)
+
     b, c, h, w = x.shape
 
     pos_embed = self._resize_pos_embed(
@@ -354,7 +358,7 @@ def _make_vit_b_rn50_backbone(
 
     pretrained.model = model
 
-    if use_vit_only == True:
+    if use_vit_only:
         pretrained.model.blocks[hooks[0]].register_forward_hook(get_activation("1"))
         pretrained.model.blocks[hooks[1]].register_forward_hook(get_activation("2"))
     else:
@@ -372,7 +376,7 @@ def _make_vit_b_rn50_backbone(
 
     readout_oper = get_readout_oper(vit_features, features, use_readout, start_index)
 
-    if use_vit_only == True:
+    if use_vit_only:
         pretrained.layer1 = nn.Sequential(
             readout_oper[0],
             Transpose(1, 2),

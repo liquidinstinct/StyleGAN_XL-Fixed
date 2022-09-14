@@ -154,7 +154,7 @@ def spectral_to_cpu(model: torch.nn.Module):
 def get_children(model: torch.nn.Module):
     children = list(model.children())
     flatt_children = []
-    if children == []:
+    if not children:
         return model
     else:
        for child in children:

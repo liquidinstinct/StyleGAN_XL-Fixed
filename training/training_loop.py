@@ -8,25 +8,25 @@
 
 """Main training loop."""
 
-import os
-import time
 import copy
 import json
-import dill
-import psutil
+import os
+import time
+
 import PIL.Image
+import dill
 import numpy as np
+import psutil
 import torch
-import torch.nn.functional as F
+
 import dnnlib
-import pickle
+import legacy
+from metrics import metric_main
 from torch_utils import misc
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import grid_sample_gradfix
 
-import legacy
-from metrics import metric_main
 
 #----------------------------------------------------------------------------
 
