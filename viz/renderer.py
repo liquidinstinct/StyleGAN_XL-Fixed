@@ -118,25 +118,25 @@ def _apply_affine_transformation(x, mat, up=4, **filter_kwargs):
 
 class Renderer:
     def __init__(self):
-        self._device        = torch.device('cpu')
+        self._device        = torch.device('cuda')
         self._pkl_data      = dict()    # {pkl: dict | CapturedException, ...}
         self._networks      = dict()    # {cache_key: torch.nn.Module, ...}
         self._pinned_bufs   = dict()    # {(shape, dtype): torch.Tensor, ...}
         self._cmaps         = dict()    # {name: torch.Tensor, ...}
         self._is_timing     = False
-        self._start_event   = torch.cpu.Event(enable_timing=True)
-        self._end_event     = torch.cpu.Event(enable_timing=True)
+        self._start_event   = torch.cuda.Event(enable_timing=True)
+        self._end_event     = torch.cuda.Event(enable_timing=True)
         self._net_layers    = dict()    # {cache_key: [dnnlib.EasyDict, ...], ...}
 
     def render(self, **args):
         self._is_timing = True
-        self._start_event.record(torch.cpu.current_stream(self._device))
+        self._start_event.record(torch.cuda.current_stream(self._device))
         res = dnnlib.EasyDict()
         try:
             self._render_impl(res, **args)
         except:
             res.error = CapturedException()
-        self._end_event.record(torch.cpu.current_stream(self._device))
+        self._end_event.record(torch.cuda.current_stream(self._device))
         if 'image' in res:
             res.image = self.to_cpu(res.image).numpy()
         if 'stats' in res:

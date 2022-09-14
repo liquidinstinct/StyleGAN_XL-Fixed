@@ -42,7 +42,7 @@ def _find_compiler_bindir():
 #----------------------------------------------------------------------------
 
 def _get_mangled_gpu_name():
-    name = torch.cpu.get_device_name().lower()
+    name = torch.cuda.get_device_name().lower()
     out = []
     for c in name:
         if re.match('[a-z0-9_-]+', c):

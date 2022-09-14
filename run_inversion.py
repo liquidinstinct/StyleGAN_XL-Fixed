@@ -4,18 +4,22 @@ import copy
 import os
 from time import perf_counter
 
-import PIL.Image
-import click
 import dill
+import click
 import imageio
 import numpy as np
-import timm
+import PIL.Image
 import torch
 import torch.nn.functional as F
 
+from tqdm import trange
 import dnnlib
 import legacy
 from metrics import metric_utils
+import timm
+
+from training.diffaug import DiffAugment
+from pg_modules.blocks import Interpolate
 
 
 def get_morphed_w_code(new_w_code, fixed_w, regularizer_alpha=30):
@@ -256,7 +260,7 @@ def run_projection(
 
     # Load networks.
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     with dnnlib.util.open_url(network_pkl) as fp:
         G = legacy.load_network_pkl(fp)['G_ema'].to(device) # type: ignore
 

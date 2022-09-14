@@ -7,48 +7,27 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 """Generate images using pretrained network pickle."""
-import io
+
 import os
-import pickle
-import pickletools
 import re
 from typing import List, Optional, Tuple, Union
 
-import PIL.Image
 import click
+import dnnlib
 import numpy as np
+import PIL.Image
 import torch
 
+import legacy
 from torch_utils import gen_utils
-
-
-def load_g_ema(network_pkl):
-    with open(network_pkl, 'rb') as handle:
-        d_starts = -1
-        g_ema_starts = -1
-        for i, op in enumerate(pickletools.genops(handle)):
-            if op[0].name == "SHORT_BINUNICODE":
-                if op[1] == 'G_ema':
-                    g_ema_starts = op[2]
-                elif op[1] == 'D':
-                    d_starts = op[2]
-        assert d_starts >= 0 and g_ema_starts >= 0
-
-    with open(network_pkl, 'rb') as handle:
-        bs = handle.read()
-        bs = bs[:d_starts] + bs[g_ema_starts:]
-        obj = pickle.Unpickler(io.BytesIO(bs)).load()
-
-    return obj['G_ema']
-
 
 #----------------------------------------------------------------------------
 
 def parse_range(s: Union[str, List]) -> List[int]:
-    """Parse a comma separated list of numbers or ranges and return a list of ints.
+    '''Parse a comma separated list of numbers or ranges and return a list of ints.
 
     Example: '1,2,5-10' returns [1, 2, 5, 6, 7]
-    """
+    '''
     if isinstance(s, list): return s
     ranges = []
     range_re = re.compile(r'^(\d+)-(\d+)$')
@@ -63,15 +42,15 @@ def parse_range(s: Union[str, List]) -> List[int]:
 #----------------------------------------------------------------------------
 
 def parse_vec2(s: Union[str, Tuple[float, float]]) -> Tuple[float, float]:
-    """Parse a floating point 2-vector of syntax 'a,b'.
+    '''Parse a floating point 2-vector of syntax 'a,b'.
 
     Example:
         '0,1' returns (0,1)
-    """
+    '''
     if isinstance(s, tuple): return s
     parts = s.split(',')
     if len(parts) == 2:
-        return float(parts[0]), float(parts[1])
+        return (float(parts[0]), float(parts[1]))
     raise ValueError(f'cannot parse 2-vector {s}')
 
 #----------------------------------------------------------------------------
@@ -114,9 +93,10 @@ def generate_images(
     class_idx: Optional[int]
 ):
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cpu')
-    G = load_g_ema(network_pkl)
-    G = G.eval().requires_grad_(False).to(device)
+    device = torch.device('cuda')
+    with dnnlib.util.open_url(network_pkl) as f:
+        G = legacy.load_network_pkl(f)['G_ema']
+        G = G.eval().requires_grad_(False).to(device)
 
     os.makedirs(outdir, exist_ok=True)
 

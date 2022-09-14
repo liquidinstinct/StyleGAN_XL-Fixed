@@ -12,18 +12,19 @@
 """Loss functions."""
 
 import numpy as np
-import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.transforms import Normalize
-
-from pg_modules.blocks import Interpolate
-from pg_modules.projector import get_backbone_normstats
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import upfirdn2d
+import dnnlib
+import legacy
 
+from pg_modules.blocks import Interpolate
+import timm
+from pg_modules.projector import get_backbone_normstats
 
 #----------------------------------------------------------------------------
 

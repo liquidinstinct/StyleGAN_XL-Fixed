@@ -44,7 +44,7 @@ def layout_grid(img, grid_w=None, grid_h=1, float_to_uint8=True, chw_to_hwc=True
 
 #----------------------------------------------------------------------------
 
-def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind='cubic', grid_dims=(1,1), num_keyframes=None, wraps=2, truncation_psi=1, device=torch.device('cpu'), centroids_path=None, class_idx=None, **video_kwargs):
+def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind='cubic', grid_dims=(1,1), num_keyframes=None, wraps=2, truncation_psi=1, device=torch.device('cuda'), centroids_path=None, class_idx=None, **video_kwargs):
     grid_w = grid_dims[0]
     grid_h = grid_dims[1]
 
@@ -105,10 +105,10 @@ def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind=
 #----------------------------------------------------------------------------
 
 def parse_range(s: Union[str, List[int]]) -> List[int]:
-    """Parse a comma separated list of numbers or ranges and return a list of ints.
+    '''Parse a comma separated list of numbers or ranges and return a list of ints.
 
     Example: '1,2,5-10' returns [1, 2, 5, 6, 7]
-    """
+    '''
     if isinstance(s, list): return s
     ranges = []
     range_re = re.compile(r'^(\d+)-(\d+)$')
@@ -123,16 +123,16 @@ def parse_range(s: Union[str, List[int]]) -> List[int]:
 #----------------------------------------------------------------------------
 
 def parse_tuple(s: Union[str, Tuple[int,int]]) -> Tuple[int, int]:
-    """Parse a 'M,N' or 'MxN' integer tuple.
+    '''Parse a 'M,N' or 'MxN' integer tuple.
 
     Example:
         '4x2' returns (4,2)
         '0,1' returns (0,1)
-    """
+    '''
     if isinstance(s, tuple): return s
     m = re.match(r'^(\d+)[x,](\d+)$', s)
     if m:
-        return int(m.group(1)), int(m.group(2))
+        return (int(m.group(1)), int(m.group(2)))
     raise ValueError(f'cannot parse tuple {s}')
 
 #----------------------------------------------------------------------------
@@ -183,7 +183,7 @@ def generate_images(
     """
 
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     with dnnlib.util.open_url(network_pkl) as f:
         G = legacy.load_network_pkl(f)['G_ema'].to(device) # type: ignore
 

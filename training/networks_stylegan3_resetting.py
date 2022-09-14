@@ -12,49 +12,19 @@
 """Generator architecture from the paper
 "Alias-Free Generative Adversarial Networks"."""
 
-import io
 import pickle
-import pickletools
-
+import sys
 import numpy as np
-import scipy.optimize
 import scipy.signal
+import scipy.optimize
 import torch
-
-import dnnlib
 from torch_utils import misc
 from torch_utils import persistence
-from torch_utils.ops import bias_act
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import filtered_lrelu
-
-
-def load_g_ema(network_pkl):
-    with open(network_pkl, "rb") as handle:
-        d_starts = -1
-        g_ema_starts = -1
-
-        # assumes that networks are saved in
-        # the order of 'G', 'D', 'G_ema'
-        for i, op in enumerate(pickletools.genops(handle)):
-            if op[0].name == "SHORT_BINUNICODE":
-                if op[1] == 'D':
-                    d_starts = op[2]
-                elif op[1] == 'G_ema':
-                    g_ema_starts = op[2]
-
-        print(g_ema_starts)
-        print(d_starts)
-
-        assert d_starts >= 0 and g_ema_starts >= 0
-
-
-    with open(network_pkl, 'rb') as handle:
-        bs = handle.read()
-        bs = bs[:d_starts] + bs[g_ema_starts:]
-        obj = pickle.Unpickler(io.BytesIO(bs)).load()
-
-    return obj['G_ema']
+from torch_utils.ops import bias_act
+import dnnlib
+import legacy
 
 #----------------------------------------------------------------------------
 
@@ -638,7 +608,8 @@ class SuperresGenerator(torch.nn.Module):
         self.up_factor = up_factor
 
         # load pretrained stem
-        G_stem = load_g_ema(path_stem)
+        with dnnlib.util.open_url(path_stem) as f:
+            G_stem = legacy.load_network_pkl(f)['G_ema']
         self.mapping = G_stem.mapping
         self.synthesis = G_stem.synthesis
 
@@ -701,7 +672,8 @@ class SuperresGenerator(torch.nn.Module):
 
     def reinit_stem(self):
         print("Reinitialize stem")
-        G_stem = load_g_ema(self.path_stem)
+        with dnnlib.util.open_url(self.path_stem) as f:
+            G_stem = legacy.load_network_pkl(f)['G_ema']
 
         # cut off critically sampled layers
         for name in reversed(G_stem.synthesis.layer_names):

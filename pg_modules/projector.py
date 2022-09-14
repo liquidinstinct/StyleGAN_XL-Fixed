@@ -1,10 +1,10 @@
+import torch
 import torch.nn as nn
 
-from feature_networks.constants import NORMALIZED_INCEPTION, NORMALIZED_IMAGENET, NORMALIZED_CLIP, VITS
-from feature_networks.pretrained_builder import _make_pretrained
 from feature_networks.vit import forward_vit
+from feature_networks.pretrained_builder import _make_pretrained
+from feature_networks.constants import NORMALIZED_INCEPTION, NORMALIZED_IMAGENET, NORMALIZED_CLIP, VITS
 from pg_modules.blocks import FeatureFusionBlock
-
 
 def get_backbone_normstats(backbone):
     if backbone in NORMALIZED_INCEPTION:

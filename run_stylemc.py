@@ -78,7 +78,7 @@ def unravel_index(index, shape):
 
 
 def num_range(s: str) -> List[int]:
-    """Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints."""
+    '''Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints.'''
 
     range_re = re.compile(r'^(\d+)-(\d+)$')
     m = range_re.match(s)
@@ -311,7 +311,7 @@ def stylemc(
     assert not((w_path is None) and (init_seed is None)), "Provide either w-path or init-seed"
 
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     with dnnlib.util.open_url(network_pkl) as f:
         G = legacy.load_network_pkl(f)['G_ema'].to(device) # type: ignore
 

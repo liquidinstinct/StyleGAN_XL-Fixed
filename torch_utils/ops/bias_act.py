@@ -147,7 +147,7 @@ def _bias_act_cuda(dim=1, act='linear', alpha=None, gain=None, clamp=None):
             b = b.contiguous() if b is not None else _null_tensor
             y = x
             if act != 'linear' or gain != 1 or clamp >= 0 or b is not _null_tensor:
-                y = _plugin.bias_act(x, b, _null_tensor, _null_tensor, _null_tensor, 0, dim, spec.cpu_idx, alpha, gain, clamp)
+                y = _plugin.bias_act(x, b, _null_tensor, _null_tensor, _null_tensor, 0, dim, spec.cuda_idx, alpha, gain, clamp)
             ctx.save_for_backward(
                 x if 'x' in spec.ref or spec.has_2nd_grad else _null_tensor,
                 b if 'x' in spec.ref or spec.has_2nd_grad else _null_tensor,
@@ -176,7 +176,7 @@ def _bias_act_cuda(dim=1, act='linear', alpha=None, gain=None, clamp=None):
         @staticmethod
         def forward(ctx, dy, x, b, y): # pylint: disable=arguments-differ
             ctx.memory_format = torch.channels_last if dy.ndim > 2 and dy.stride(1) == 1 else torch.contiguous_format
-            dx = _plugin.bias_act(dy, b, x, y, _null_tensor, 1, dim, spec.cpu_idx, alpha, gain, clamp)
+            dx = _plugin.bias_act(dy, b, x, y, _null_tensor, 1, dim, spec.cuda_idx, alpha, gain, clamp)
             ctx.save_for_backward(
                 dy if spec.has_2nd_grad else _null_tensor,
                 x, b, y)
@@ -195,7 +195,7 @@ def _bias_act_cuda(dim=1, act='linear', alpha=None, gain=None, clamp=None):
                 d_dy = BiasActCudaGrad.apply(d_dx, x, b, y)
 
             if spec.has_2nd_grad and (ctx.needs_input_grad[1] or ctx.needs_input_grad[2]):
-                d_x = _plugin.bias_act(d_dx, b, x, y, dy, 2, dim, spec.cpu_idx, alpha, gain, clamp)
+                d_x = _plugin.bias_act(d_dx, b, x, y, dy, 2, dim, spec.cuda_idx, alpha, gain, clamp)
 
             if spec.has_2nd_grad and ctx.needs_input_grad[2]:
                 d_b = d_x.sum([i for i in range(d_x.ndim) if i != dim])

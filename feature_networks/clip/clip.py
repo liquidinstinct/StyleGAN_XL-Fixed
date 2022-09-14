@@ -7,7 +7,6 @@ from typing import Union, List
 import torch
 import torch.nn as nn
 from PIL import Image
-from torch import Tensor
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from tqdm import tqdm
 
@@ -72,7 +71,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load(name: str, device: Union[str, torch.device] = "cpu" if torch.cpu.is_available() else "cpu", jit=True):
+def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=True):
     """Load a CLIP model
 
     Parameters
@@ -163,7 +162,7 @@ def load(name: str, device: Union[str, torch.device] = "cpu" if torch.cpu.is_ava
     return model, _transform(model.input_resolution.item())
 
 
-def tokenize(texts: Union[str, List[str]], context_length: int = 77) -> Tensor:
+def tokenize(texts: Union[str, List[str]], context_length: int = 77) -> torch.LongTensor:
     """
     Returns the tokenized representation of given input string(s)
 

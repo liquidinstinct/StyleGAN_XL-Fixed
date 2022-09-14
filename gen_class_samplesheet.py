@@ -1,18 +1,17 @@
 import os
 from pathlib import Path
-from typing import List
-
 import PIL.Image
+from typing import List
 import click
 import numpy as np
 import torch
 from tqdm import tqdm
 
-import dnnlib
 import legacy
-from gen_images import parse_range
+import dnnlib
+from training.training_loop import save_image_grid
 from torch_utils import gen_utils
-
+from gen_images import parse_range
 
 @click.command()
 @click.option('--network', 'network_pkl', help='Network pickle filename', required=True)
@@ -38,7 +37,7 @@ def generate_samplesheet(
     desc: str,
 ):
     print('Loading networks from "%s"...' % network_pkl)
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     with dnnlib.util.open_url(network_pkl) as f:
         G = legacy.load_network_pkl(f)['G_ema'].to(device).requires_grad_(False)
 

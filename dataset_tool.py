@@ -36,15 +36,15 @@ def error(msg):
 #----------------------------------------------------------------------------
 
 def parse_tuple(s: str) -> Tuple[int, int]:
-    """Parse a 'M,N' or 'MxN' integer tuple.
+    '''Parse a 'M,N' or 'MxN' integer tuple.
 
     Example:
         '4x2' returns (4,2)
         '0,1' returns (0,1)
-    """
+    '''
     m = re.match(r'^(\d+)[x,](\d+)$', s)
     if m:
-        return int(m.group(1)), int(m.group(2))
+        return (int(m.group(1)), int(m.group(2)))
     raise ValueError(f'cannot parse tuple {s}')
 
 #----------------------------------------------------------------------------

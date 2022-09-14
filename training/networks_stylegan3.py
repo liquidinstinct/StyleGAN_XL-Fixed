@@ -10,20 +10,18 @@
 "Alias-Free Generative Adversarial Networks"."""
 
 import pickle
-
 import numpy as np
-import scipy.optimize
 import scipy.signal
+import scipy.optimize
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from matplotlib.colors import to_rgb
-
 from torch_utils import misc
 from torch_utils import persistence
-from torch_utils.ops import bias_act
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import filtered_lrelu
-
+from torch_utils.ops import bias_act
+from pg_modules.blocks import CCBN1D
 
 #----------------------------------------------------------------------------
 
