@@ -1,5 +1,5 @@
 import functools
-
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,20 +28,20 @@ def NormLayer(c, mode='batch'):
 
 ### Activations
 
-class GLU(nn.Module):
+class GLU(pl.LightningModule):
     def forward(self, x):
         nc = x.size(1)
         assert nc % 2 == 0, 'channels dont divide 2!'
         nc = int(nc/2)
         return x[:, :nc] * torch.sigmoid(x[:, nc:])
 
-class Swish(nn.Module):
+class Swish(pl.LightningModule):
     def forward(self, feat):
         return feat * torch.sigmoid(feat)
 
 ### Upblocks
 
-class InitLayer(nn.Module):
+class InitLayer(pl.LightningModule):
     def __init__(self, nz, channel, sz=4):
         super().__init__()
 
@@ -62,7 +62,7 @@ def UpBlockSmall(in_planes, out_planes):
         NormLayer(out_planes*2), GLU())
     return block
 
-class UpBlockSmallCond(nn.Module):
+class UpBlockSmallCond(pl.LightningModule):
     def __init__(self, in_planes, out_planes, z_dim):
         super().__init__()
         self.in_planes = in_planes
@@ -93,7 +93,7 @@ def UpBlockBig(in_planes, out_planes):
         )
     return block
 
-class UpBlockBigCond(nn.Module):
+class UpBlockBigCond(pl.LightningModule):
     def __init__(self, in_planes, out_planes, z_dim):
         super().__init__()
         self.in_planes = in_planes
@@ -124,7 +124,7 @@ class UpBlockBigCond(nn.Module):
 
         return x
 
-class SEBlock(nn.Module):
+class SEBlock(pl.LightningModule):
     def __init__(self, ch_in, ch_out):
         super().__init__()
         self.main = nn.Sequential(
@@ -140,7 +140,7 @@ class SEBlock(nn.Module):
 
 ### Downblocks
 
-class DownBlock(nn.Module):
+class DownBlock(pl.LightningModule):
     def __init__(self, in_planes, out_planes, width=1):
         super().__init__()
         self.main = nn.Sequential(
@@ -152,7 +152,7 @@ class DownBlock(nn.Module):
     def forward(self, feat):
         return self.main(feat)
 
-class DownBlockSGBlocks(nn.Module):
+class DownBlockSGBlocks(pl.LightningModule):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         conv_depthwise = Conv2dLayerDepthwise(in_channels, in_channels, kernel_size=3, activation='linear')
@@ -162,7 +162,7 @@ class DownBlockSGBlocks(nn.Module):
     def forward(self, feat):
         return self.main(feat)
 
-class SeparableConv2d(nn.Module):
+class SeparableConv2d(pl.LightningModule):
     def __init__(self, in_channels, out_channels, kernel_size, bias=False):
         super(SeparableConv2d, self).__init__()
         self.depthwise = conv2d(in_channels, in_channels, kernel_size=kernel_size,
@@ -175,7 +175,7 @@ class SeparableConv2d(nn.Module):
         out = self.pointwise(out)
         return out
 
-class DownBlockSep(nn.Module):
+class DownBlockSep(pl.LightningModule):
     def __init__(self, in_planes, out_planes):
         super().__init__()
         self.main = nn.Sequential(
@@ -188,7 +188,7 @@ class DownBlockSep(nn.Module):
     def forward(self, feat):
         return self.main(feat)
 
-class DownBlockPatch(nn.Module):
+class DownBlockPatch(pl.LightningModule):
     def __init__(self, in_planes, out_planes):
         super().__init__()
         self.main = nn.Sequential(
@@ -203,7 +203,7 @@ class DownBlockPatch(nn.Module):
 
 ### CSM
 
-class ResidualConvUnit(nn.Module):
+class ResidualConvUnit(pl.LightningModule):
     def __init__(self, cin, activation, bn):
         super().__init__()
         self.conv = nn.Conv2d(cin, cin, kernel_size=3, stride=1, padding=1, bias=True)
@@ -212,7 +212,7 @@ class ResidualConvUnit(nn.Module):
     def forward(self, x):
         return self.skip_add.add(self.conv(x), x)
 
-class FeatureFusionBlock(nn.Module):
+class FeatureFusionBlock(pl.LightningModule):
     def __init__(self, features, activation, deconv=False, bn=False, expand=False, align_corners=True, lowest=False):
         super().__init__()
 
@@ -221,7 +221,7 @@ class FeatureFusionBlock(nn.Module):
 
         self.expand = expand
         out_features = features
-        if self.expand==True:
+        if self.expand:
             out_features = features//2
 
         self.out_conv = nn.Conv2d(features, out_features, kernel_size=1, stride=1, padding=0, bias=True, groups=1)
@@ -243,7 +243,7 @@ class FeatureFusionBlock(nn.Module):
 
 ### Misc
 
-class NoiseInjection(nn.Module):
+class NoiseInjection(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.weight = nn.Parameter(torch.zeros(1), requires_grad=True)
@@ -255,8 +255,8 @@ class NoiseInjection(nn.Module):
 
         return feat + self.weight * noise
 
-class CCBN(nn.Module):
-    ''' conditional batchnorm '''
+class CCBN(pl.LightningModule):
+    """ conditional batchnorm """
     def __init__(self, output_size, input_size, which_linear, eps=1e-5, momentum=0.1):
         super().__init__()
         self.output_size, self.input_size = output_size, input_size
@@ -281,8 +281,8 @@ class CCBN(nn.Module):
                            self.training, 0.1, self.eps)
         return out * gain + bias
 
-class CCBN1D(nn.Module):
-    ''' conditional batchnorm '''
+class CCBN1D(pl.LightningModule):
+    """ conditional batchnorm """
     def __init__(self, output_size, input_size, which_linear, eps=1e-5, momentum=0.1):
         super().__init__()
         self.output_size, self.input_size = output_size, input_size
@@ -307,7 +307,7 @@ class CCBN1D(nn.Module):
                            self.training, 0.1, self.eps)
         return out * gain + bias
 
-class Interpolate(nn.Module):
+class Interpolate(pl.LightningModule):
     """Interpolation module."""
 
     def __init__(self, size, mode='bilinear', align_corners=False):

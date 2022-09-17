@@ -49,7 +49,6 @@ See this PR for the discussion that lead to this system:
 https://github.com/uqfoundation/dill/pull/443
 """
 
-import inspect
 import sys
 
 _dill = sys.modules['dill._dill']
@@ -68,6 +67,7 @@ class Reduce(object):
     pickler.save_reduce(*reduction, obj=reduction)
     """
     __slots__ = ['reduction']
+
     def __new__(cls, *reduction, **kwargs):
         """
         Args:
@@ -78,23 +78,29 @@ class Reduce(object):
               is allowed to be used as the function in further save_reduce calls
               or Reduce objects.
         """
-        is_callable = kwargs.get('is_callable', False) # Pleases Py2. Can be removed later
+        is_callable = kwargs.get('is_callable', False)  # Pleases Py2. Can be removed later
         if is_callable:
             self = object.__new__(_CallableReduce)
         else:
             self = object.__new__(Reduce)
         self.reduction = reduction
         return self
+
     def __repr__(self):
         return 'Reduce%s' % (self.reduction,)
+
     def __copy__(self):
-        return self # pragma: no cover
+        return self  # pragma: no cover
+
     def __deepcopy__(self, memo):
-        return self # pragma: no cover
+        return self  # pragma: no cover
+
     def __reduce__(self):
         return self.reduction
+
     def __reduce_ex__(self, protocol):
         return self.__reduce__()
+
 
 class _CallableReduce(Reduce):
     # A version of Reduce for functions. Used to trick pickler.save_reduce into
@@ -106,7 +112,9 @@ class _CallableReduce(Reduce):
         obj = func(*f_args)
         return obj(*args, **kwargs)
 
+
 __NO_DEFAULT = _dill.Sentinel('Getattr.NO_DEFAULT')
+
 
 def Getattr(object, name, default=__NO_DEFAULT):
     """
@@ -137,8 +145,10 @@ def Getattr(object, name, default=__NO_DEFAULT):
 
     return Reduce(*reduction, is_callable=callable(default))
 
+
 Getattr.NO_DEFAULT = __NO_DEFAULT
 del __NO_DEFAULT
+
 
 def move_to(module, name=None):
     def decorator(func):
@@ -149,7 +159,9 @@ def move_to(module, name=None):
         module.__dict__[fname] = func
         func.__module__ = module.__name__
         return func
+
     return decorator
+
 
 def register_shim(name, default):
     """
@@ -182,6 +194,7 @@ def register_shim(name, default):
         reduction = (getattr, (_dill, name, default))
 
     return Reduce(*reduction, is_callable=callable(default))
+
 
 ######################
 ## Compatibility Shims are defined below

@@ -8,21 +8,20 @@
 
 """Generate lerp videos using pretrained network pickle."""
 
-import copy
-import os
 import re
 from typing import List, Optional, Tuple, Union
 
 import click
-import dnnlib
 import imageio
 import numpy as np
 import scipy.interpolate
 import torch
 from tqdm import tqdm
 
+import dnnlib
 import legacy
 from torch_utils import gen_utils
+
 
 #----------------------------------------------------------------------------
 
@@ -105,10 +104,10 @@ def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind=
 #----------------------------------------------------------------------------
 
 def parse_range(s: Union[str, List[int]]) -> List[int]:
-    '''Parse a comma separated list of numbers or ranges and return a list of ints.
+    """Parse a comma separated list of numbers or ranges and return a list of ints.
 
     Example: '1,2,5-10' returns [1, 2, 5, 6, 7]
-    '''
+    """
     if isinstance(s, list): return s
     ranges = []
     range_re = re.compile(r'^(\d+)-(\d+)$')
@@ -123,16 +122,16 @@ def parse_range(s: Union[str, List[int]]) -> List[int]:
 #----------------------------------------------------------------------------
 
 def parse_tuple(s: Union[str, Tuple[int,int]]) -> Tuple[int, int]:
-    '''Parse a 'M,N' or 'MxN' integer tuple.
+    """Parse a 'M,N' or 'MxN' integer tuple.
 
     Example:
         '4x2' returns (4,2)
         '0,1' returns (0,1)
-    '''
+    """
     if isinstance(s, tuple): return s
     m = re.match(r'^(\d+)[x,](\d+)$', s)
     if m:
-        return (int(m.group(1)), int(m.group(2)))
+        return int(m.group(1)), int(m.group(2))
     raise ValueError(f'cannot parse tuple {s}')
 
 #----------------------------------------------------------------------------

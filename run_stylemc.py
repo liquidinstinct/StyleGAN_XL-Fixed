@@ -78,7 +78,7 @@ def unravel_index(index, shape):
 
 
 def num_range(s: str) -> List[int]:
-    '''Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints.'''
+    """Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints."""
 
     range_re = re.compile(r'^(\d+)-(\d+)$')
     m = range_re.match(s)

@@ -1,10 +1,10 @@
-import torch
 import torch.nn as nn
-
-from feature_networks.vit import forward_vit
-from feature_networks.pretrained_builder import _make_pretrained
+import pytorch_lightning as pl
 from feature_networks.constants import NORMALIZED_INCEPTION, NORMALIZED_IMAGENET, NORMALIZED_CLIP, VITS
+from feature_networks.pretrained_builder import _make_pretrained
+from feature_networks.vit import forward_vit
 from pg_modules.blocks import FeatureFusionBlock
+
 
 def get_backbone_normstats(backbone):
     if backbone in NORMALIZED_INCEPTION:
@@ -65,7 +65,8 @@ def _make_projector(im_res, backbone, cout, proj_type, expand=False):
     if proj_type == 0: return pretrained, None
 
     ### Build CCM
-    scratch = nn.Module()
+ 
+    scratch = pl.LightningModule()
     scratch = _make_scratch_ccm(scratch, in_channels=pretrained.CHANNELS, cout=cout, expand=expand)
 
     pretrained.CHANNELS = scratch.CHANNELS
@@ -81,11 +82,11 @@ def _make_projector(im_res, backbone, cout, proj_type, expand=False):
 
     return pretrained, scratch
 
-class F_Identity(nn.Module):
+class F_Identity(pl.LightningModule):
     def forward(self, x):
         return x
 
-class F_RandomProj(nn.Module):
+class F_RandomProj(pl.LightningModule):
     def __init__(
         self,
         backbone="tf_efficientnet_lite3",

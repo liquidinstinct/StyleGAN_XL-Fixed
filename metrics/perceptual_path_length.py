@@ -15,6 +15,7 @@ import copy
 import numpy as np
 import torch
 from . import metric_utils
+import pytorch_lightning as pl
 
 #----------------------------------------------------------------------------
 
@@ -32,7 +33,7 @@ def slerp(a, b, t):
 
 #----------------------------------------------------------------------------
 
-class PPLSampler(torch.nn.Module):
+class PPLSampler(pl.LightningModule):
     def __init__(self, G, G_kwargs, epsilon, space, sampling, crop, vgg16):
         assert space in ['z', 'w']
         assert sampling in ['full', 'end']

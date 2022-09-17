@@ -19,6 +19,7 @@ from torch_utils.ops import conv2d_resample
 from torch_utils.ops import upfirdn2d
 from torch_utils.ops import bias_act
 from torch_utils.ops import fma
+import pytorch_lightning as pl
 
 #----------------------------------------------------------------------------
 
@@ -91,7 +92,7 @@ def modulated_conv2d(
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class FullyConnectedLayer(torch.nn.Module):
+class FullyConnectedLayer(pl.LightningModule):
     def __init__(self,
         in_features,                # Number of input features.
         out_features,               # Number of output features.
@@ -130,7 +131,7 @@ class FullyConnectedLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Conv2dLayer(torch.nn.Module):
+class Conv2dLayer(pl.LightningModule):
     def __init__(self,
         in_channels,                    # Number of input channels.
         out_channels,                   # Number of output channels.
@@ -188,7 +189,7 @@ class Conv2dLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Conv2dLayerDepthwise(torch.nn.Module):
+class Conv2dLayerDepthwise(pl.LightningModule):
     def __init__(self,
         in_channels,                    # Number of input channels.
         out_channels,                   # Number of output channels.
@@ -246,7 +247,7 @@ class Conv2dLayerDepthwise(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class MappingNetwork(torch.nn.Module):
+class MappingNetwork(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality, 0 = no latent.
         c_dim,                      # Conditioning label (C) dimensionality, 0 = no label.
@@ -329,7 +330,7 @@ class MappingNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisLayer(torch.nn.Module):
+class SynthesisLayer(pl.LightningModule):
     def __init__(self,
         in_channels,                    # Number of input channels.
         out_channels,                   # Number of output channels.
@@ -393,7 +394,7 @@ class SynthesisLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class ToRGBLayer(torch.nn.Module):
+class ToRGBLayer(pl.LightningModule):
     def __init__(self, in_channels, out_channels, w_dim, kernel_size=1, conv_clamp=None, channels_last=False):
         super().__init__()
         self.in_channels = in_channels
@@ -418,7 +419,7 @@ class ToRGBLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisBlock(torch.nn.Module):
+class SynthesisBlock(pl.LightningModule):
     def __init__(self,
         in_channels,                            # Number of input channels, 0 = first block.
         out_channels,                           # Number of output channels.
@@ -522,7 +523,7 @@ class SynthesisBlock(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisNetwork(torch.nn.Module):
+class SynthesisNetwork(pl.LightningModule):
     def __init__(self,
         w_dim,                      # Intermediate latent (W) dimensionality.
         img_resolution,             # Output image resolution.
@@ -582,7 +583,7 @@ class SynthesisNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Generator(torch.nn.Module):
+class Generator(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality.
         c_dim,                      # Conditioning label (C) dimensionality.
@@ -610,7 +611,7 @@ class Generator(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class DiscriminatorBlock(torch.nn.Module):
+class DiscriminatorBlock(pl.LightningModule):
     def __init__(self,
         in_channels,                        # Number of input channels, 0 = first block.
         tmp_channels,                       # Number of intermediate channels.
@@ -699,7 +700,7 @@ class DiscriminatorBlock(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class MinibatchStdLayer(torch.nn.Module):
+class MinibatchStdLayer(pl.LightningModule):
     def __init__(self, group_size, num_channels=1):
         super().__init__()
         self.group_size = group_size
@@ -728,7 +729,7 @@ class MinibatchStdLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class DiscriminatorEpilogue(torch.nn.Module):
+class DiscriminatorEpilogue(pl.LightningModule):
     def __init__(self,
         in_channels,                    # Number of input channels.
         cmap_dim,                       # Dimensionality of mapped conditioning label, 0 = no label.
@@ -789,7 +790,7 @@ class DiscriminatorEpilogue(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Discriminator(torch.nn.Module):
+class Discriminator(pl.LightningModule):
     def __init__(self,
         c_dim,                          # Conditioning label (C) dimensionality.
         img_resolution,                 # Input resolution.

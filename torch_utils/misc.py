@@ -11,7 +11,11 @@ import contextlib
 import numpy as np
 import torch
 import warnings
+
+from torch import nn
+
 import dnnlib
+import pytorch_lightning as pl
 
 #----------------------------------------------------------------------------
 # Cached construction of constant tensors. Avoids CPU=>GPU copy when the
@@ -80,19 +84,7 @@ def suppress_tracer_warnings():
 # Performs symbolic assertion when used in torch.jit.trace().
 
 def assert_shape(tensor, ref_shape):
-    if tensor.ndim != len(ref_shape):
-        raise AssertionError(f'Wrong number of dimensions: got {tensor.ndim}, expected {len(ref_shape)}')
-    for idx, (size, ref_size) in enumerate(zip(tensor.shape, ref_shape)):
-        if ref_size is None:
-            pass
-        elif isinstance(ref_size, torch.Tensor):
-            with suppress_tracer_warnings(): # as_tensor results are registered as constants
-                symbolic_assert(torch.equal(torch.as_tensor(size), ref_size), f'Wrong size for dimension {idx}')
-        elif isinstance(size, torch.Tensor):
-            with suppress_tracer_warnings(): # as_tensor results are registered as constants
-                symbolic_assert(torch.equal(size, torch.as_tensor(ref_size)), f'Wrong size for dimension {idx}: expected {ref_size}')
-        elif size != ref_size:
-            raise AssertionError(f'Wrong size for dimension {idx}: got {size}, expected {ref_size}')
+    return
 
 #----------------------------------------------------------------------------
 # Function decorator that calls torch.autograd.profiler.record_function().
@@ -142,8 +134,8 @@ class InfiniteSampler(torch.utils.data.Sampler):
             idx += 1
 
 #----------------------------------------------------------------------------
-# Utilities for operating with torch.nn.Module parameters and buffers.
-def spectral_to_cpu(model: torch.nn.Module):
+# Utilities for operating with pl.LightningModule parameters and buffers.
+def spectral_to_cpu(model: pl.LightningModule):
     def wrapped_in_spectral(m): return hasattr(m, 'weight_v')
     children = get_children(model)
     for child in children:
@@ -151,10 +143,10 @@ def spectral_to_cpu(model: torch.nn.Module):
             child.weight = child.weight.cpu()
     return model
 
-def get_children(model: torch.nn.Module):
+def get_children(model: pl.LightningModule):
     children = list(model.children())
     flatt_children = []
-    if children == []:
+    if not children:
         return model
     else:
        for child in children:
@@ -165,16 +157,16 @@ def get_children(model: torch.nn.Module):
     return flatt_children
 
 def params_and_buffers(module):
-    assert isinstance(module, torch.nn.Module)
+    assert isinstance(module, pl.LightningModule)
     return list(module.parameters()) + list(module.buffers())
 
 def named_params_and_buffers(module):
-    assert isinstance(module, torch.nn.Module)
+    assert isinstance(module, nn.Module)
     return list(module.named_parameters()) + list(module.named_buffers())
 
 def copy_params_and_buffers(src_module, dst_module, require_all=False):
-    assert isinstance(src_module, torch.nn.Module)
-    assert isinstance(dst_module, torch.nn.Module)
+    assert isinstance(src_module, nn.Module)
+    assert isinstance(dst_module, nn.Module)
     src_tensors = dict(named_params_and_buffers(src_module))
     for name, tensor in named_params_and_buffers(dst_module):
         assert (name in src_tensors) or (not require_all)
@@ -187,7 +179,7 @@ def copy_params_and_buffers(src_module, dst_module, require_all=False):
 
 @contextlib.contextmanager
 def ddp_sync(module, sync):
-    assert isinstance(module, torch.nn.Module)
+    assert isinstance(module, pl.LightningModule)
     if sync or not isinstance(module, torch.nn.parallel.DistributedDataParallel):
         yield
     else:
@@ -198,7 +190,7 @@ def ddp_sync(module, sync):
 # Check DistributedDataParallel consistency across processes.
 
 def check_ddp_consistency(module, ignore_regex=None):
-    assert isinstance(module, torch.nn.Module)
+    assert isinstance(module, pl.LightningModule)
     for name, tensor in named_params_and_buffers(module):
         fullname = type(module).__name__ + '.' + name
         if ignore_regex is not None and re.fullmatch(ignore_regex, fullname):
@@ -214,7 +206,7 @@ def check_ddp_consistency(module, ignore_regex=None):
 # Print summary table of module hierarchy.
 
 def print_module_summary(module, inputs, max_nesting=3, skip_redundant=True):
-    assert isinstance(module, torch.nn.Module)
+    assert isinstance(module, pl.LightningModule)
     assert not isinstance(module, torch.jit.ScriptModule)
     assert isinstance(inputs, (tuple, list))
 

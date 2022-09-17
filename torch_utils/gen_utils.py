@@ -431,7 +431,7 @@ def get_w_from_seed(G, batch_sz, device, truncation_psi=1.0, seed=None, centroid
     if G.c_dim != 0:
         # sample random labels if no class idx is given
         if class_idx is None:
-            class_indices = np.random.RandomState(seed).randint(low=0, high=G.c_dim, size=(batch_sz))
+            class_indices = np.random.RandomState(seed).randint(low=0, high=G.c_dim, size=batch_sz)
             class_indices = torch.from_numpy(class_indices).to(device)
             w_avg = G.mapping.w_avg.index_select(0, class_indices)
         else:

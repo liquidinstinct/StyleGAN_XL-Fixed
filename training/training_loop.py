@@ -8,46 +8,48 @@
 
 """Main training loop."""
 
-import os
-import time
 import copy
 import json
-import dill
-import psutil
+import os
+import time
+
 import PIL.Image
+import dill
 import numpy as np
+import psutil
+import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
 import dnnlib
-import pickle
+import legacy
+from metrics import metric_main
 from torch_utils import misc
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import grid_sample_gradfix
 
-import legacy
-from metrics import metric_main
 
 #----------------------------------------------------------------------------
 
-def setup_snapshot_image_grid(training_set, random_seed=0, gw=None, gh=None):
+def setup_snapshot_image_grid(training_setargs, random_seed=0, gw=None, gh=None):
     rnd = np.random.RandomState(random_seed)
     if gw is None:
-        gw = np.clip(7680 // training_set.image_shape[2], 7, 32)
+        gw = np.clip(7680 // training_setargs.image_shape[2], 7, 32)
     if gh is None:
-        gh = np.clip(4320 // training_set.image_shape[1], 4, 32)
+        gh = np.clip(4320 // training_setargs.image_shape[1], 4, 32)
 
     # No labels => show random subset of training samples.
-    if not training_set.has_labels:
-        all_indices = list(range(len(training_set)))
+    if not training_setargs.has_labels:
+        all_indices = list(range(len(training_setargs)))
         rnd.shuffle(all_indices)
         grid_indices = [all_indices[i % len(all_indices)] for i in range(gw * gh)]
 
     else:
         # Group training samples by label.
         label_groups = dict() # label => [idx, ...]
-        for idx in range(len(training_set)):
-            label = tuple(training_set.get_details(idx).raw_label.flat[::-1])
+        for idx in range(len(training_setargs)):
+            label = tuple(training_setargs.get_details(idx).raw_label.flat[::-1])
             if label not in label_groups:
                 label_groups[label] = []
             label_groups[label].append(idx)
@@ -66,7 +68,7 @@ def setup_snapshot_image_grid(training_set, random_seed=0, gw=None, gh=None):
             label_groups[label] = [indices[(i + gw) % len(indices)] for i in range(len(indices))]
 
     # Load data.
-    images, labels = zip(*[training_set[i] for i in grid_indices])
+    images, labels = zip(*[training_setargs[i] for i in grid_indices])
     return (gw, gh), np.stack(images), np.stack(labels)
 
 #----------------------------------------------------------------------------
@@ -142,33 +144,37 @@ def training_loop(
     torch.backends.cudnn.allow_tf32 = False             # Improves numerical accuracy.
     conv2d_gradfix.enabled = True                       # Improves training speed.
     grid_sample_gradfix.enabled = True                  # Avoids errors with the augmentation pipe.
-    __RESTART__ = torch.tensor(0., device=device)       # will be broadcasted to exit loop
-    __CUR_NIMG__ = torch.tensor(resume_kimg * 1000, dtype=torch.long, device=device)
-    __CUR_TICK__ = torch.tensor(0, dtype=torch.long, device=device)
-    __BATCH_IDX__ = torch.tensor(0, dtype=torch.long, device=device)
-    __AUGMENT_P__ = torch.tensor(augment_p, dtype=torch.float, device=device)
+    __RESTART__ = torch.as_tensor(0., device=device)       # will be broadcasted to exit loop
+    __CUR_NIMG__ = torch.as_tensor(resume_kimg * 1000, dtype=torch.long, device=device)
+    __CUR_TICK__ = torch.as_tensor(0, dtype=torch.long, device=device)
+    __BATCH_IDX__ = torch.as_tensor(0, dtype=torch.long, device=device)
+    __AUGMENT_P__ = torch.as_tensor(augment_p, dtype=torch.float, device=device)
     __PL_MEAN__ = torch.zeros([], device=device)
     best_fid = 9999
 
     # Load training set.
     if rank == 0:
         print('Loading training set...')
-    training_set = dnnlib.util.construct_class_by_name(**training_set_kwargs) # subclass of training.dataset.Dataset
-    training_set_sampler = misc.InfiniteSampler(dataset=training_set, rank=rank, num_replicas=num_gpus, seed=random_seed)
-    training_set_iterator = iter(torch.utils.data.DataLoader(dataset=training_set, sampler=training_set_sampler, batch_size=batch_size//num_gpus, **data_loader_kwargs))
-    if rank == 0:
+
+    #Trainer
+    training_setargs = dnnlib.util.construct_class_by_name(**training_set_kwargs) # subclass of training.dataset.Dataset
+    training_set = pl.Trainer(accelerator='auto', devices=2, strategy="ddp")
+
+    training_set_sampler = misc.InfiniteSampler(dataset=training_setargs, rank=rank, num_replicas=num_gpus, seed=random_seed)
+    training_set_iterator = iter(DataLoader(dataset=training_setargs, sampler=training_set_sampler, batch_size=batch_size//num_gpus, **data_loader_kwargs))
+    if rank == -1:
         print()
-        print('Num images: ', len(training_set))
-        print('Image shape:', training_set.image_shape)
-        print('Label shape:', training_set.label_shape)
+        print('Num images: ', len(training_setargs))
+        print('Image shape:', training_setargs.image_shape)
+        print('Label shape:', training_setargs.label_shape)
         print()
 
     # Construct networks.
     if rank == 0:
         print('Constructing networks...')
-    common_kwargs = dict(c_dim=training_set.label_dim, img_resolution=training_set.resolution, img_channels=training_set.num_channels)
-    G = dnnlib.util.construct_class_by_name(**G_kwargs, **common_kwargs).train().requires_grad_(False).to(device) # subclass of torch.nn.Module
-    D = dnnlib.util.construct_class_by_name(**D_kwargs, **common_kwargs).train().requires_grad_(False).to(device) # subclass of torch.nn.Module
+    common_kwargs = dict(c_dim=training_setargs.label_dim, img_resolution=training_setargs.resolution, img_channels=training_setargs.num_channels)
+    G = dnnlib.util.construct_class_by_name(**G_kwargs, **common_kwargs).train().requires_grad_(False).to(device) # subclass of pl.LightningModule
+    D = dnnlib.util.construct_class_by_name(**D_kwargs, **common_kwargs).train().requires_grad_(False).to(device) # subclass of pl.LightningModule
     G_ema = copy.deepcopy(G).eval()
 
     # Check for existing checkpoint
@@ -213,7 +219,7 @@ def training_loop(
     augment_pipe = None
     ada_stats = None
     if (augment_kwargs is not None) and (augment_p > 0 or ada_target is not None):
-        augment_pipe = dnnlib.util.construct_class_by_name(**augment_kwargs).train().requires_grad_(False).to(device) # subclass of torch.nn.Module
+        augment_pipe = dnnlib.util.construct_class_by_name(**augment_kwargs).train().requires_grad_(False).to(device) # subclass of pl.LightningModule
         augment_pipe.p.copy_(torch.as_tensor(augment_p))
         if ada_target is not None:
             ada_stats = training_stats.Collector(regex='Loss/signs/real')
@@ -229,6 +235,8 @@ def training_loop(
     # Setup training phases.
     if rank == 0:
         print('Setting up training phases...')
+
+        ## loss function
     loss = dnnlib.util.construct_class_by_name(device=device, G=G, G_ema=G_ema, D=D, augment_pipe=augment_pipe, **loss_kwargs) # subclass of training.loss.Loss
     phases = []
     iter_dict = {'G': 1, 'D': 1}  # change here if you want to do several G/D iterations at once
@@ -260,14 +268,14 @@ def training_loop(
     grid_c = None
     if rank == 0:
         print('Exporting sample images...')
-        grid_size, images, labels = setup_snapshot_image_grid(training_set=training_set)
-        save_image_grid(images, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size)
+        grid_size, images, labels = setup_snapshot_image_grid(training_setargs)
+        #save_image_grid(images, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size)
 
         grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
         images = torch.cat([G_ema(z=z, c=c, noise_mode='const').cpu() for z, c in zip(grid_z, grid_c)]).numpy()
 
-        save_image_grid(images, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size)
+        #save_image_grid(images, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size)
 
     # Initialize logs.
     if rank == 0:
@@ -316,7 +324,7 @@ def training_loop(
             phase_real_c = phase_real_c.to(device).split(batch_gpu)
             all_gen_z = torch.randn([len(phases) * batch_size, G.z_dim], device=device)
             all_gen_z = [phase_gen_z.split(batch_gpu) for phase_gen_z in all_gen_z.split(batch_size)]
-            all_gen_c = [training_set.get_label(np.random.randint(len(training_set))) for _ in range(len(phases) * batch_size)]
+            all_gen_c = [training_setargs.get_label(np.random.randint(len(training_setargs))) for _ in range(len(phases) * batch_size)]
             all_gen_c = torch.from_numpy(np.stack(all_gen_c)).pin_memory().to(device)
             all_gen_c = [phase_gen_c.split(batch_gpu) for phase_gen_c in all_gen_c.split(batch_size)]
 
@@ -432,7 +440,7 @@ def training_loop(
         if (network_snapshot_ticks is not None) and (done or cur_tick % network_snapshot_ticks == 0):
             snapshot_data = dict(G=G, D=D, G_ema=G_ema, augment_pipe=augment_pipe, training_set_kwargs=dict(training_set_kwargs))
             for key, value in snapshot_data.items():
-                if isinstance(value, torch.nn.Module):
+                if isinstance(value, pl.LightningModule):
                     # value = copy.deepcopy(value).eval().requires_grad_(False)
                     # value = misc.spectral_to_cpu(value)
                     # if num_gpus > 1:

@@ -1,13 +1,13 @@
 from collections import OrderedDict
 from typing import Tuple, Union
-
+import pytorch_lightning as pl
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
 
-class Bottleneck(nn.Module):
+class Bottleneck(pl.LightningModule):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1):
@@ -53,7 +53,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class AttentionPool2d(nn.Module):
+class AttentionPool2d(pl.LightningModule):
     def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
         super().__init__()
         self.positional_embedding = nn.Parameter(torch.randn(spacial_dim ** 2 + 1, embed_dim) / embed_dim ** 0.5)
@@ -90,7 +90,7 @@ class AttentionPool2d(nn.Module):
         return x[0]
 
 
-class ModifiedResNet(nn.Module):
+class ModifiedResNet(pl.LightningModule):
     """
     A ResNet class that is similar to torchvision's but contains the following changes:
     - There are now 3 "stem" convolutions as opposed to 1, with an average pool instead of a max pool.
@@ -159,13 +159,13 @@ class LayerNorm(nn.LayerNorm):
         return ret.type(orig_type)
 
 
-class QuickGELU(nn.Module):
+class QuickGELU(pl.LightningModule):
     def forward(self, x: torch.Tensor):
         return x * torch.sigmoid(1.702 * x)
 
 
-class ResidualAttentionBlock(nn.Module):
-    def __init__(self, d_model: int, n_head: int, attn_mask: torch.Tensor = None):
+class ResidualAttentionBlock(pl.LightningModule):
+    def __init__(self, d_model: int, n_head: int, attn_mask: torch.as_tensor = None):
         super().__init__()
 
         self.attn = nn.MultiheadAttention(d_model, n_head)
@@ -178,7 +178,7 @@ class ResidualAttentionBlock(nn.Module):
         self.ln_2 = LayerNorm(d_model)
         self.attn_mask = attn_mask
 
-    def attention(self, x: torch.Tensor):
+    def attention(self, x: torch.as_tensor):
         self.attn_mask = self.attn_mask.to(dtype=x.dtype, device=x.device) if self.attn_mask is not None else None
         return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
 
@@ -188,7 +188,7 @@ class ResidualAttentionBlock(nn.Module):
         return x
 
 
-class Transformer(nn.Module):
+class Transformer(pl.LightningModule):
     def __init__(self, width: int, layers: int, heads: int, attn_mask: torch.Tensor = None):
         super().__init__()
         self.width = width
@@ -199,7 +199,7 @@ class Transformer(nn.Module):
         return self.resblocks(x)
 
 
-class VisualTransformer(nn.Module):
+class VisualTransformer(pl.LightningModule):
     def __init__(self, input_resolution: int, patch_size: int, width: int, layers: int, heads: int, output_dim: int):
         super().__init__()
         self.input_resolution = input_resolution
@@ -236,7 +236,7 @@ class VisualTransformer(nn.Module):
         return x
 
 
-class CLIP(nn.Module):
+class CLIP(pl.LightningModule):
     def __init__(self,
                  embed_dim: int,
                  # vision
@@ -389,7 +389,7 @@ class CLIP(nn.Module):
         return logits_per_image, logits_per_text
 
 
-def convert_weights(model: nn.Module):
+def convert_weights(model: pl.LightningModule):
     """Convert applicable model parameters to fp16"""
 
     def _convert_weights_to_fp16(l):

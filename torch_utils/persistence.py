@@ -41,14 +41,14 @@ def persistent_class(orig_class):
         from torch_utils import persistence
 
         @persistence.persistent_class
-        class MyNetwork(torch.nn.Module):
+        class MyNetwork(pl.LightningModule):
             def __init__(self, num_inputs, num_outputs):
                 super().__init__()
                 self.fc = MyLayer(num_inputs, num_outputs)
                 ...
 
         @persistence.persistent_class
-        class MyLayer(torch.nn.Module):
+        class MyLayer(pl.LightningModule):
             ...
 
     When pickled, any instance of `MyNetwork` and `MyLayer` will save its

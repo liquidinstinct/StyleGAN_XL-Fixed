@@ -4,22 +4,18 @@ import copy
 import os
 from time import perf_counter
 
-import dill
+import PIL.Image
 import click
+import dill
 import imageio
 import numpy as np
-import PIL.Image
+import timm
 import torch
 import torch.nn.functional as F
 
-from tqdm import trange
 import dnnlib
 import legacy
 from metrics import metric_utils
-import timm
-
-from training.diffaug import DiffAugment
-from pg_modules.blocks import Interpolate
 
 
 def get_morphed_w_code(new_w_code, fixed_w, regularizer_alpha=30):

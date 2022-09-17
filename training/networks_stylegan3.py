@@ -10,18 +10,19 @@
 "Alias-Free Generative Adversarial Networks"."""
 
 import pickle
+import pytorch_lightning as pl
 import numpy as np
-import scipy.signal
 import scipy.optimize
+import scipy.signal
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+
 from torch_utils import misc
 from torch_utils import persistence
+from torch_utils.ops import bias_act
 from torch_utils.ops import conv2d_gradfix
 from torch_utils.ops import filtered_lrelu
-from torch_utils.ops import bias_act
-from pg_modules.blocks import CCBN1D
+
 
 #----------------------------------------------------------------------------
 
@@ -70,7 +71,7 @@ def modulated_conv2d(
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class FullyConnectedLayer(torch.nn.Module):
+class FullyConnectedLayer(pl.LightningModule):
     def __init__(self,
         in_features,                # Number of input features.
         out_features,               # Number of output features.
@@ -110,7 +111,7 @@ class FullyConnectedLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class MappingNetwork(torch.nn.Module):
+class MappingNetwork(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality.
         c_dim,                      # Conditioning label (C) dimensionality, 0 = no labels.
@@ -178,7 +179,7 @@ class MappingNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisInput(torch.nn.Module):
+class SynthesisInput(pl.LightningModule):
     def __init__(self,
         w_dim,          # Intermediate latent (W) dimensionality.
         channels,       # Number of output channels.
@@ -262,7 +263,7 @@ class SynthesisInput(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisLayer(torch.nn.Module):
+class SynthesisLayer(pl.LightningModule):
     def __init__(self,
         w_dim,                          # Intermediate latent (W) dimensionality.
         is_torgb,                       # Is this the final ToRGB layer?
@@ -408,7 +409,7 @@ class SynthesisLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisNetwork(torch.nn.Module):
+class SynthesisNetwork(pl.LightningModule):
     def __init__(self,
         w_dim,                          # Intermediate latent (W) dimensionality.
         img_resolution,                 # Output image resolution.
@@ -497,7 +498,7 @@ class SynthesisNetwork(torch.nn.Module):
             f'margin_size={self.margin_size:d}, num_fp16_res={self.num_fp16_res:d}'])
 
 @persistence.persistent_class
-class SynthesisNetworkSkipRGB(torch.nn.Module):
+class SynthesisNetworkSkipRGB(pl.LightningModule):
     def __init__(self,
         w_dim,                          # Intermediate latent (W) dimensionality.
         img_resolution,                 # Output image resolution.
@@ -562,6 +563,7 @@ class SynthesisNetworkSkipRGB(torch.nn.Module):
             setattr(self, name, layer)
             self.layer_names.append(name)
 
+            from matplotlib.colors import to_rgb
             if to_rgb:
                 new_idx = idx + 1
                 prev = max(idx - 1, 0)
@@ -601,7 +603,7 @@ class SynthesisNetworkSkipRGB(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Generator(torch.nn.Module):
+class Generator(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality.
         c_dim,                      # Conditioning label (C) dimensionality.

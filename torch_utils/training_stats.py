@@ -59,7 +59,7 @@ def report(name, value):
 
     This function is expected to be extremely cheap and can be safely
     called from anywhere in the training loop, loss function, or inside a
-    `torch.nn.Module`.
+    `pl.LightningModule`.
 
     Warning: The current implementation expects the set of unique names to
     be consistent across processes. Please make sure that `report()` is

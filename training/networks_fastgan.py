@@ -3,6 +3,7 @@
 # modified by Axel Sauer for "Projected GANs Converge Faster"
 #
 import torch.nn as nn
+import pytorch_lightning as pl
 from pg_modules.blocks import (InitLayer, UpBlockBig, UpBlockBigCond, UpBlockSmall, UpBlockSmallCond, SEBlock, conv2d)
 
 
@@ -10,7 +11,7 @@ def normalize_second_moment(x, dim=1, eps=1e-8):
     return x * (x.square().mean(dim=dim, keepdim=True) + eps).rsqrt()
 
 
-class DummyMapping(nn.Module):
+class DummyMapping(pl.LightningModule):
     def __init__(self):
         super().__init__()
 
@@ -18,7 +19,7 @@ class DummyMapping(nn.Module):
         return z.unsqueeze(1)  # to fit the StyleGAN API
 
 
-class FastganSynthesis(nn.Module):
+class FastganSynthesis(pl.LightningModule):
     def __init__(self, ngf=128, z_dim=256, nc=3, img_resolution=256, lite=False):
         super().__init__()
         self.img_resolution = img_resolution
@@ -83,7 +84,7 @@ class FastganSynthesis(nn.Module):
         return self.to_big(feat_last)
 
 
-class FastganSynthesisCond(nn.Module):
+class FastganSynthesisCond(pl.LightningModule):
     def __init__(self, ngf=64, z_dim=256, nc=3, img_resolution=256, num_classes=1000, lite=False):
         super().__init__()
 
@@ -149,7 +150,7 @@ class FastganSynthesisCond(nn.Module):
         return self.to_big(feat_last)
 
 
-class Generator(nn.Module):
+class Generator(pl.LightningModule):
     def __init__(
         self,
         z_dim=256,

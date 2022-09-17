@@ -1,18 +1,17 @@
 import numpy as np
+import timm
 import torch
 import torch.nn as nn
 import torchvision.models as zoomodels
-from torch.autograd import Function
-
-import timm
-
+import pytorch_lightning as pl
 from feature_networks import clip
-from feature_networks.vit import _make_vit_b16_backbone, forward_vit
 from feature_networks.constants import ALL_MODELS, VITS, EFFNETS, REGNETS
-from pg_modules.blocks import Interpolate
+from feature_networks.vit import _make_vit_b16_backbone, forward_vit
+
 
 def _feature_splitter(model, idcs):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(model.features[:idcs[0]])
     pretrained.layer1 = nn.Sequential(model.features[idcs[0]:idcs[1]])
     pretrained.layer2 = nn.Sequential(model.features[idcs[1]:idcs[2]])
@@ -20,7 +19,8 @@ def _feature_splitter(model, idcs):
     return pretrained
 
 def _make_resnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(
         model.conv1, model.bn1, model.relu, model.maxpool, model.layer1,
     )
@@ -30,7 +30,8 @@ def _make_resnet(model):
     return pretrained
 
 def _make_regnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(
         model.stem, model.s1
     )
@@ -40,7 +41,8 @@ def _make_regnet(model):
     return pretrained
 
 def _make_nfnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(
         model.stem, model.stages[0]
     )
@@ -50,7 +52,8 @@ def _make_nfnet(model):
     return pretrained
 
 def _make_resnet_v2(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(model.stem, model.stages[0])
     pretrained.layer1 = model.stages[1]
     pretrained.layer2 = model.stages[2]
@@ -58,7 +61,8 @@ def _make_resnet_v2(model):
     return pretrained
 
 def _make_resnet_clip(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
 
     # slightly more complicated than the standard resnet
     pretrained.layer0 = nn.Sequential(
@@ -82,7 +86,8 @@ def _make_resnet_clip(model):
     return pretrained
 
 def _make_densenet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
 
     pretrained.layer0 = model.features[:6]
 
@@ -100,7 +105,8 @@ def _make_densenet(model):
     return pretrained
 
 def _make_shufflenet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(model.conv1, model.maxpool)
     pretrained.layer1 = model.stage2
     pretrained.layer2 = model.stage3
@@ -108,7 +114,8 @@ def _make_shufflenet(model):
     return pretrained
 
 def _make_cspresnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(model.stem, model.stages[0])
     pretrained.layer1 = model.stages[1]
     pretrained.layer2 = model.stages[2]
@@ -116,7 +123,8 @@ def _make_cspresnet(model):
     return pretrained
 
 def _make_efficientnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(
         model.conv_stem, model.bn1, model.act1, *model.blocks[0:2]
     )
@@ -126,7 +134,8 @@ def _make_efficientnet(model):
     return pretrained
 
 def _make_ghostnet(model):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
     pretrained.layer0 = nn.Sequential(
         model.conv_stem, model.bn1, model.act1, *model.blocks[0:3],
     )

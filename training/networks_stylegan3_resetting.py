@@ -6,25 +6,49 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 #
-# modified by Axel Sauer for "StyleGAN-XL: Scaling StyleGAN to Large Diverse Datasets"
+# modified by Axel Sauer for "StyleGAN-XL: Scaling StyleGANs to Large Diverse Datasets"
 #
 
 """Generator architecture from the paper
 "Alias-Free Generative Adversarial Networks"."""
-
+import io
 import pickle
-import sys
+import pickletools
+
+import dill
 import numpy as np
-import scipy.signal
 import scipy.optimize
+import scipy.signal
 import torch
-from torch_utils import misc
-from torch_utils import persistence
-from torch_utils.ops import conv2d_gradfix
-from torch_utils.ops import filtered_lrelu
-from torch_utils.ops import bias_act
+import pytorch_lightning as pl
 import dnnlib
 import legacy
+from torch_utils import misc
+from torch_utils import persistence
+from torch_utils.ops import bias_act
+from torch_utils.ops import conv2d_gradfix
+from torch_utils.ops import filtered_lrelu
+
+
+def load_g_ema(network_pkl):
+    with open(network_pkl, 'rb') as handle:
+        d_starts = -1
+        g_ema_starts = -1
+        for i, op in enumerate(pickletools.genops(handle)):
+            if op[0].name == "SHORT_BINUNICODE" or op[0].name == "BINUNICODE":
+                if op[1] == 'G_ema':
+                    g_ema_starts = op[2]
+                elif op[1] == 'D':
+                    d_starts = op[2]
+        assert d_starts >= 0 and g_ema_starts >= 0
+
+    with open(network_pkl, 'rb') as handle:
+        bs = handle.read()
+        bs = bs[:d_starts] + bs[g_ema_starts:]
+        obj = pickle.Unpickler(io.BytesIO(bs)).load()
+
+    return obj['G_ema']
+
 
 #----------------------------------------------------------------------------
 
@@ -74,7 +98,7 @@ def modulated_conv2d(
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class FullyConnectedLayer(torch.nn.Module):
+class FullyConnectedLayer(pl.LightningModule):
     def __init__(self,
         in_features,                # Number of input features.
         out_features,               # Number of output features.
@@ -114,7 +138,7 @@ class FullyConnectedLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class MappingNetwork(torch.nn.Module):
+class MappingNetwork(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality.
         c_dim,                      # Conditioning label (C) dimensionality, 0 = no labels.
@@ -201,7 +225,7 @@ class MappingNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisInput(torch.nn.Module):
+class SynthesisInput(pl.LightningModule):
     def __init__(self,
         w_dim,          # Intermediate latent (W) dimensionality.
         channels,       # Number of output channels.
@@ -287,7 +311,7 @@ class SynthesisInput(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisLayer(torch.nn.Module):
+class SynthesisLayer(pl.LightningModule):
     def __init__(self,
         w_dim,                          # Intermediate latent (W) dimensionality.
         is_torgb,                       # Is this the final ToRGB layer?
@@ -459,7 +483,7 @@ class SynthesisLayer(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SynthesisNetwork(torch.nn.Module):
+class SynthesisNetwork(pl.LightningModule):
     def __init__(self,
         w_dim,                          # Intermediate latent (W) dimensionality.
         img_resolution,                 # Output image resolution.
@@ -564,7 +588,7 @@ class SynthesisNetwork(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class Generator(torch.nn.Module):
+class Generator(pl.LightningModule):
     def __init__(self,
         z_dim,                      # Input latent (Z) dimensionality.
         c_dim,                      # Conditioning label (C) dimensionality.
@@ -592,7 +616,7 @@ class Generator(torch.nn.Module):
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
-class SuperresGenerator(torch.nn.Module):
+class SuperresGenerator(pl.LightningModule):
     def __init__(
         self,
         img_resolution,
@@ -608,8 +632,7 @@ class SuperresGenerator(torch.nn.Module):
         self.up_factor = up_factor
 
         # load pretrained stem
-        with dnnlib.util.open_url(path_stem) as f:
-            G_stem = legacy.load_network_pkl(f)['G_ema']
+        G_stem = load_g_ema(path_stem)
         self.mapping = G_stem.mapping
         self.synthesis = G_stem.synthesis
 

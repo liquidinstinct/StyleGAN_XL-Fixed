@@ -228,7 +228,7 @@ def _upfirdn2d_cuda(up=1, down=1, padding=0, flip_filter=False, gain=1):
         return _upfirdn2d_cuda_cache[key]
 
     # Forward op.
-    class Upfirdn2dCuda(torch.autograd.Function):
+    class Upfirdn2dCuda( torch.autograd.Function):
         @staticmethod
         def forward(ctx, x, f): # pylint: disable=arguments-differ
             assert isinstance(x, torch.Tensor) and x.ndim == 4

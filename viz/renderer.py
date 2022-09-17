@@ -120,7 +120,7 @@ class Renderer:
     def __init__(self):
         self._device        = torch.device('cuda')
         self._pkl_data      = dict()    # {pkl: dict | CapturedException, ...}
-        self._networks      = dict()    # {cache_key: torch.nn.Module, ...}
+        self._networks      = dict()    # {cache_key: pl.LightningModule, ...}
         self._pinned_bufs   = dict()    # {(shape, dtype): torch.Tensor, ...}
         self._cmaps         = dict()    # {name: torch.Tensor, ...}
         self._is_timing     = False
@@ -268,7 +268,8 @@ class Renderer:
         for idx, seed in enumerate(all_seeds):
             rnd = np.random.RandomState(seed)
             all_zs[idx] = rnd.randn(G.z_dim)
-            cls = rnd.randint(G.c_dim)
+
+            cls = rnd.rand(G.w_dim)
             if G.c_dim > 0:
                 all_cs[idx, cls] = 1
 

@@ -4,6 +4,8 @@ import urllib
 import warnings
 from typing import Union, List
 
+import pytorch_lightning as pl
+
 import torch
 import torch.nn as nn
 from PIL import Image
@@ -87,7 +89,7 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
 
     Returns
     -------
-    model : torch.nn.Module
+    model : pl.LightningModule
         The CLIP model
 
     preprocess : Callable[[PIL.Image], torch.Tensor]
@@ -226,7 +228,7 @@ def pdist(sample_1, sample_2, norm=2, eps=1e-5):
         return (eps + inner) ** (1. / norm)
 
 
-class ClipHead(nn.Module):
+class ClipHead:
     def __init__(self, prompt, device='cpu'):
         super().__init__()
         self.clip_model = load("RN50", device=device, jit=False)[0].eval()

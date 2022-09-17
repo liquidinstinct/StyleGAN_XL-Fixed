@@ -8,20 +8,30 @@
 
 """Converting legacy network pickle into the new format."""
 
+import copy
 import io
-import click
 import pickle
 import re
-import copy
+
+import click
 import numpy as np
+import pytorch_lightning
 import torch
+
 import dnnlib
+from feature_networks.vit import forward_flex, _resize_pos_embed
 from torch_utils import misc
-import io
+import types
+import pytorch_lightning as pl
+
 
 #----------------------------------------------------------------------------
 
 def load_network_pkl(f, force_fp16=False):
+    from timm.models.vision_transformer import VisionTransformer
+    VisionTransformer.forward_flex = types.MethodType(forward_flex, VisionTransformer)
+    VisionTransformer._resize_pos_embed = types.MethodType(_resize_pos_embed, VisionTransformer)
+
     data = _LegacyUnpickler(f).load()
 
     # Legacy TensorFlow pickle => convert.
@@ -39,11 +49,11 @@ def load_network_pkl(f, force_fp16=False):
         data['augment_pipe'] = None
 
     # Validate contents.
-    assert isinstance(data['G'], torch.nn.Module)
-    assert isinstance(data['G_ema'], torch.nn.Module)
-    # assert isinstance(data['D'], torch.nn.Module)
+    #assert isinstance(data['G'], pytorch_lightning.LightningModule )
+    #assert isinstance(data['G_ema'], pl.LightningModule)
+    # assert isinstance(data['D'], pl.LightningModule)
     # assert isinstance(data['training_set_kwargs'], (dict, type(None)))
-    # assert isinstance(data['augment_pipe'], (torch.nn.Module, type(None)))
+    # assert isinstance(data['augment_pipe'], (pl.LightningModule, type(None)))
 
     # Force FP16.
     if force_fp16:

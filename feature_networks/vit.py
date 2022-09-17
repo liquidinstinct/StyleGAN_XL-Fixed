@@ -4,9 +4,10 @@ import timm
 import types
 import math
 import torch.nn.functional as F
+import pytorch_lightning as pl
 
 
-class Slice(nn.Module):
+class Slice(pl.LightningModule):
     def __init__(self, start_index=1):
         super(Slice, self).__init__()
         self.start_index = start_index
@@ -15,7 +16,7 @@ class Slice(nn.Module):
         return x[:, self.start_index :]
 
 
-class AddReadout(nn.Module):
+class AddReadout(pl.LightningModule):
     def __init__(self, start_index=1):
         super(AddReadout, self).__init__()
         self.start_index = start_index
@@ -28,7 +29,7 @@ class AddReadout(nn.Module):
         return x[:, self.start_index :] + readout.unsqueeze(1)
 
 
-class ProjectReadout(nn.Module):
+class ProjectReadout(pl.LightningModule):
     def __init__(self, in_features, start_index=1):
         super(ProjectReadout, self).__init__()
         self.start_index = start_index
@@ -42,7 +43,7 @@ class ProjectReadout(nn.Module):
         return self.project(features)
 
 
-class Transpose(nn.Module):
+class Transpose(pl.LightningModule):
     def __init__(self, dim0, dim1):
         super(Transpose, self).__init__()
         self.dim0 = dim0
@@ -115,6 +116,10 @@ def _resize_pos_embed(self, posemb, gs_h, gs_w):
 
 
 def forward_flex(self, x):
+    from timm.models.vision_transformer import VisionTransformer
+    VisionTransformer.forward_flex = types.MethodType(forward_flex, VisionTransformer)
+    VisionTransformer._resize_pos_embed = types.MethodType(_resize_pos_embed, VisionTransformer)
+
     b, c, h, w = x.shape
 
     pos_embed = self._resize_pos_embed(
@@ -189,7 +194,8 @@ def _make_vit_b16_backbone(
     use_readout="ignore",
     start_index=1,
 ):
-    pretrained = nn.Module()
+
+    pretrained = pl.LightningModule()
 
     pretrained.model = model
     pretrained.model.blocks[hooks[0]].register_forward_hook(get_activation("1"))
@@ -297,7 +303,7 @@ def _make_vit_b16_backbone(
 def _make_pretrained_vitl16_384(pretrained, use_readout="ignore", hooks=None):
     model = timm.create_model("vit_large_patch16_384", pretrained=pretrained)
 
-    hooks = [5, 11, 17, 23] if hooks == None else hooks
+    hooks = [5, 11, 17, 23] if hooks is None else hooks
     return _make_vit_b16_backbone(
         model,
         features=[256, 512, 1024, 1024],
@@ -310,7 +316,7 @@ def _make_pretrained_vitl16_384(pretrained, use_readout="ignore", hooks=None):
 def _make_pretrained_vitb16_384(pretrained, use_readout="ignore", hooks=None):
     model = timm.create_model("vit_base_patch16_384", pretrained=pretrained)
 
-    hooks = [2, 5, 8, 11] if hooks == None else hooks
+    hooks = [2, 5, 8, 11] if hooks is None else hooks
     return _make_vit_b16_backbone(
         model, features=[96, 192, 384, 768], hooks=hooks, use_readout=use_readout
     )
@@ -319,7 +325,7 @@ def _make_pretrained_vitb16_384(pretrained, use_readout="ignore", hooks=None):
 def _make_pretrained_deitb16_384(pretrained, use_readout="ignore", hooks=None):
     model = timm.create_model("vit_deit_base_patch16_384", pretrained=pretrained)
 
-    hooks = [2, 5, 8, 11] if hooks == None else hooks
+    hooks = [2, 5, 8, 11] if hooks is None else hooks
     return _make_vit_b16_backbone(
         model, features=[96, 192, 384, 768], hooks=hooks, use_readout=use_readout
     )
@@ -330,7 +336,7 @@ def _make_pretrained_deitb16_distil_384(pretrained, use_readout="ignore", hooks=
         "vit_deit_base_distilled_patch16_384", pretrained=pretrained
     )
 
-    hooks = [2, 5, 8, 11] if hooks == None else hooks
+    hooks = [2, 5, 8, 11] if hooks is None else hooks
     return _make_vit_b16_backbone(
         model,
         features=[96, 192, 384, 768],
@@ -350,11 +356,12 @@ def _make_vit_b_rn50_backbone(
     use_readout="ignore",
     start_index=1,
 ):
-    pretrained = nn.Module()
+ 
+    pretrained = pl.LightningModule()
 
     pretrained.model = model
 
-    if use_vit_only == True:
+    if use_vit_only:
         pretrained.model.blocks[hooks[0]].register_forward_hook(get_activation("1"))
         pretrained.model.blocks[hooks[1]].register_forward_hook(get_activation("2"))
     else:
@@ -372,7 +379,7 @@ def _make_vit_b_rn50_backbone(
 
     readout_oper = get_readout_oper(vit_features, features, use_readout, start_index)
 
-    if use_vit_only == True:
+    if use_vit_only:
         pretrained.layer1 = nn.Sequential(
             readout_oper[0],
             Transpose(1, 2),
@@ -480,7 +487,7 @@ def _make_pretrained_vitb_rn50_384(
 ):
     model = timm.create_model("vit_base_resnet50_384", pretrained=pretrained)
 
-    hooks = [0, 1, 8, 11] if hooks == None else hooks
+    hooks = [0, 1, 8, 11] if hooks is None else hooks
     return _make_vit_b_rn50_backbone(
         model,
         features=[256, 512, 768, 768],

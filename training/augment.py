@@ -19,6 +19,8 @@ from torch_utils import misc
 from torch_utils.ops import upfirdn2d
 from torch_utils.ops import grid_sample_gradfix
 from torch_utils.ops import conv2d_gradfix
+import pytorch_lightning as pl
+
 
 #----------------------------------------------------------------------------
 # Coefficients of various wavelet decomposition low-pass filters.
@@ -119,7 +121,7 @@ def rotate2d_inv(theta, **kwargs):
 # be enabled by setting their probability multipliers to 1.
 
 @persistence.persistent_class
-class AugmentPipe(torch.nn.Module):
+class AugmentPipe(pl.LightningModule):
     def __init__(self,
         xflip=0, rotate90=0, xint=0, xint_max=0.125,
         scale=0, rotate=0, aniso=0, xfrac=0, scale_std=0.2, rotate_max=1, aniso_std=0.2, xfrac_std=0.125,

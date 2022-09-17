@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.transforms import Normalize
 import pickle
+import pytorch_lightning as pl
 
 from training.diffaug import DiffAugment
 from training.networks_stylegan2 import FullyConnectedLayer
@@ -11,7 +12,7 @@ from pg_modules.blocks import conv2d, DownBlock, DownBlockPatch
 from pg_modules.projector import F_RandomProj
 from feature_networks.constants import VITS
 
-class SingleDisc(nn.Module):
+class SingleDisc(pl.LightningModule):
     def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, patch=False):
         super().__init__()
 
@@ -55,7 +56,7 @@ class SingleDisc(nn.Module):
     def forward(self, x, c):
         return self.main(x)
 
-class SingleDiscCond(nn.Module):
+class SingleDiscCond(pl.LightningModule):
     def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, patch=False, c_dim=1000, cmap_dim=64, rand_embedding=False):
         super().__init__()
         self.cmap_dim = cmap_dim
@@ -117,7 +118,7 @@ class SingleDiscCond(nn.Module):
 
         return out
 
-class MultiScaleD(nn.Module):
+class MultiScaleD(pl.LightningModule):
     def __init__(
         self,
         channels,
@@ -152,7 +153,7 @@ class MultiScaleD(nn.Module):
         all_logits = torch.cat(all_logits, dim=1)
         return all_logits
 
-class ProjectedDiscriminator(torch.nn.Module):
+class ProjectedDiscriminator(pl.LightningModule):
     def __init__(
         self,
         backbones,
@@ -181,7 +182,9 @@ class ProjectedDiscriminator(torch.nn.Module):
             feature_networks.append([bb_name, feat])
             discriminators.append([bb_name, disc])
 
+
         self.feature_networks = nn.ModuleDict(feature_networks)
+
         self.discriminators = nn.ModuleDict(discriminators)
 
     def train(self, mode=True):
