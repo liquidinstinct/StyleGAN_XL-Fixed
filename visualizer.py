@@ -333,3 +333,29 @@ if __name__ == "__main__":
     main()
 
 #----------------------------------------------------------------------------
+import numpy as np
+import cv2
+import NDIlib
+
+# Initialize StyleGAN XL model
+model = StyleGANXL()
+
+# Initialize NDI sender
+ndi_sender = NDIlib.send.create()
+
+# Create the source
+ndi_source = NDIlib.send.create_video_frame(width, height)
+
+while True:
+    # Generate a frame from the StyleGAN XL model
+    frame = model.generate_frame()
+
+    # Convert the frame to RGBA format
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
+
+    # Copy the frame data to the NDI video frame
+    ndi_source.p_data = frame.ctypes.data
+
+    # Send the video frame over NDI
+    ndi_sender.send_video_v2(ndi_source)
+
