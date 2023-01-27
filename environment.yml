@@ -2,6 +2,7 @@ name: sgxl
 channels:
   - pytorch
   - nvidia
+  - ndi-python
 dependencies:
   - python >= 3.8
   - pip
@@ -25,4 +26,4 @@ dependencies:
     - pyspng
     - ftfy==6.1.1
     - timm==0.4.12
-    - ndi-python
+  
