@@ -2,7 +2,6 @@ name: sgxl
 channels:
   - pytorch
   - nvidia
-  - ndi-python
 dependencies:
   - python >= 3.8
   - pip
